@@ -106,16 +106,29 @@ function beginWaypoints() {
  *  Begin the autnonomous user tracking function
  */
 function beginUserTracking() {
-  if ((navigator.geolocation)) {
+  if ((navigator.geolocation) && $("#user-tracker").hasClass("btn-primary")) {
     ajaxSend('beginUserTracking');
+  } else {
+    alert("You are not in the geofence. Not activating user tracking!");
   }
+}
+
+/**
+ * Begin the taking pictures thread.
+ */
+function beginTakingPictures() {
+    ajaxSend('beginTakingPictures');
 }
 
 /**
  *  Begin the Environmental Mapping
  */
-function beginUserMapping() {
-    ajaxSend('beginUserMapping');
+function beginUserMapping(radius) {
+  if (typeof radius !== "undefined" && radius > 2 && radius < 20) {
+    ajaxSend('beginUserMapping', radius);
+  } else {
+    ajaxSend('beginUserMapping', -1);
+  }
 }
 
 /**
@@ -146,24 +159,16 @@ function setCameraLearningSize(decrease) {
 }
 
 /**
- * Perform camera auto learning.
+ * Parse to ints.
  */
-function doCameraAutoLearning() {
-  ajaxSend('doCameraAutoLearning').success(function() {
-    ajaxSend('requestCameraConfig').success(function(ret) {
-      updateDisplayedCameraConfig($.parseJSON(ret)["CAMERA_STREAM"]);
-    });
-  });
-}
+function toInts(val) {
+  return parseInt(val, 10);
+};
 
 /**
  * Manually set the Hue, Saturation and Value parameters.
  */
 function setCameraLearningValues() {
-  function toInts(val) {
-    return parseInt(val, 10);
-  };
-  
   var csp = $("#camera-thresh-colourspace option:selected").val();
   var ret={};
   
@@ -191,6 +196,45 @@ function setCameraLearningValues() {
   ajaxSend('setCameraConfig', JSON.stringify({"CAMERA_STREAM" : ret})).success(function() {
     ajaxSend('requestCameraConfig').success(function(ret) {
       updateDisplayedCameraConfig($.parseJSON(ret)["CAMERA_STREAM"]);
+    });
+  });
+}
+
+/**
+ * Perform camera auto learning.
+ */
+function doCameraAutoLearning() {
+  var csp = $("#camera-thresh-colourspace option:selected").val();
+  var ret;
+  if (csp === "csp-ycbcr") {
+    var y = $("#cal-y").val().map(toInts);
+    ret = ajaxSend('setCameraConfig', JSON.stringify({"CAMERA_STREAM" : 
+      {
+        "THRESH_COLOURSPACE" : 1,
+        "MIN_Y" : y[0],
+        "MAX_Y" : y[1]
+      }
+    }));
+  } else {
+    var s = $("#cal-sat").val().map(toInts);
+    var v = $("#cal-val").val().map(toInts);
+    
+    ret = ajaxSend('setCameraConfig', JSON.stringify({"CAMERA_STREAM" : 
+      {
+        "THRESH_COLOURSPACE" : 0,
+        "MIN_SAT" : s[0],
+        "MAX_SAT" : s[1],
+        "MIN_VAL" : v[0],
+        "MAX_VAL" : v[1]
+      }
+    }));
+  }
+  
+  ret.success(function () {
+    ajaxSend('doCameraAutoLearning').success(function() {
+      ajaxSend('requestCameraConfig').success(function(ret) {
+        updateDisplayedCameraConfig($.parseJSON(ret)["CAMERA_STREAM"]);
+      });
     });
   });
 }

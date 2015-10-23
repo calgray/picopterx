@@ -84,6 +84,9 @@ function detectionShow() {
   $.each(data.detected, function(i,v) {
       $("#map-canvas").copterMap('addDetection', v);
   });
+  $.each(data.gpslog, function(i, v) {
+      $("#map-canvas").copterMap('addDetectionTrack', v);
+  });
   
   console.log(data);
 }
@@ -299,5 +302,14 @@ $(document).ready(function () {
     if (alt > 0) {
       takeOff(alt);
     }
+  });
+  
+  $("#mapping-modal-manual").on('click', function(e) {
+    var radius = parseInt($("#mapping-alt").val(), 10);
+    beginUserMapping(radius);
+  });
+  
+  $("#mapping-modal-auto").on('click', function(e) {
+    beginUserMapping();
   });
 });

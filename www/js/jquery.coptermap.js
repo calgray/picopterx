@@ -229,11 +229,24 @@ L.NumberedDetectionIcon = L.Icon.extend({
         var latlng = L.latLng(detection.lat, detection.lon);
         instance.addNumberedMarker(data.dctMarkers, latlng, false, true, L.NumberedDetectionIcon);
         var marker = data.dctMarkers[data.dctMarkers.length-1];
-        marker.bindPopup("<img src=\""+detection.image+"\">" + 
+        marker.bindPopup("<img src=\""+detection.image+"\" style='width:100%;'>" + 
           "<br>Time: " + detection.timestamp +
           "<br>At: " + detection.lat + ", " + detection.lon +
           "<br>Detection altitude: " +
           detection.alt + "m");
+      }
+      
+      /**
+       * Add a detection track to the map.
+       * @param [in] track The track positon.
+       */
+      this.addDetectionTrack = function(track) {
+        if (!data.paths.copterTrack) {
+          instance.addPath('copterTrack', 'red');
+        }
+        
+        var latlng = L.latLng(track.lat, track.lon);
+        data.paths.copterTrack.addLatLng(latlng);
       }
       
       /**
@@ -338,6 +351,7 @@ L.NumberedDetectionIcon = L.Icon.extend({
        */
       this.clearDetectionMarkers = function() {
         instance.clearMarkers(data.dctMarkers);
+        instance.removeMapLayer(data.map, data.paths, 'copterTrack');
       }
 
       /**
@@ -384,10 +398,12 @@ L.NumberedDetectionIcon = L.Icon.extend({
         if (!data.editMode || force) { //Don't send if we're editing...
           if (data.pattern === "manual") {
             callback(data.pattern, packageCoordinates(data.wptMarkers));
-          } else if (data.pattern == "lawnmower") {
+          } else if (data.pattern === "lawnmower") {
             callback(data.pattern, packageCoordinates(data.rctMarkers));
-          } else if (data.pattern == "spiral") {
+          } else if (data.pattern === "spiral") {
             callback(data.pattern, packageCoordinates(data.splMarkers));
+          } else if (data.pattern === "exclusion") {
+            callback(data.pattern, packageCoordinates(data.excMarkers[0]));
           }
         }
       };
@@ -425,7 +441,7 @@ L.NumberedDetectionIcon = L.Icon.extend({
           if (data.pattern === "manual") {
             markers = data.wptMarkers;
           } else if (data.pattern === "lawnmower") {
-            markers === data.rctMarkers;
+            markers = data.rctMarkers;
           } else if (data.pattern === "spiral") {
             markers = data.splMarkers;
           } else if (data.pattern === "exclusion") {
@@ -443,6 +459,8 @@ L.NumberedDetectionIcon = L.Icon.extend({
             }
             markers[index].setLatLng(ll).update();
             instance.updateWptPath();
+            instance.updateBounds();
+            instance.updateExclusions();
           }
         }
       }
@@ -638,8 +656,9 @@ L.NumberedDetectionIcon = L.Icon.extend({
           instance.removeMapLayer(data.map, data.paths, 'wptPath');
           instance.removeMapLayer(data.map, data, 'boundRegion');
           instance.removeMapLayer(data.map, data, 'upperBoundRegion');
-          for (var i = 0; i < data.exclusionZones.length; i++)
-            instance.removeMapLayer(data.map, data, 'exclusionZones');
+          //Always display exclusion zones since they affect everything
+          //for (var i = 0; i < data.exclusionZones.length; i++)
+          //  instance.removeMapLayer(data.map, data, 'exclusionZones');
         } else if (pattern === "manual") {
           hide(data.wptMarkers, data.map);
           instance.removeMapLayer(data.map, data.paths, 'wptPath');
@@ -653,7 +672,7 @@ L.NumberedDetectionIcon = L.Icon.extend({
         } else if (pattern === "exclusion") {
           for (var i = 0; i < data.excMarkers.length; i++)
             hide(data.excMarkers[i], data.map);
-          instance.removeMapLayer(data.map, data, 'exclusionZones');
+          //instance.removeMapLayer(data.map, data, 'exclusionZones');
         }
       };
 

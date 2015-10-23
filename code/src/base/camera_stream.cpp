@@ -17,6 +17,7 @@ using std::chrono::steady_clock;
 using std::chrono::duration_cast;
 using std::chrono::seconds;
 using std::chrono::milliseconds;
+using std::chrono::microseconds;
 
 #ifdef IS_ON_PI
     using namespace omxcv;
@@ -35,6 +36,7 @@ CameraStream::CameraStream(Options *opts)
 : m_capture(-1)
 , m_stop{false}
 , m_mode(MODE_NO_PROCESSING)
+, m_pool(4)
 , m_fps(-1)
 , m_show_backend(false)
 , m_save_photo(false)
@@ -215,7 +217,7 @@ void CameraStream::GetConfig(Options *config) {
 void CameraStream::SetConfig(Options *config) {
     std::lock_guard<std::mutex> lock(m_worker_mutex);
     bool refresh = false, decrease = false;
-    int colourspace = THRESH_HSV;
+    int colourspace = m_thresholds.colourspace;
 
     config->SetFamily("CAMERA_STREAM");
     config->GetBool("SHOW_BACKEND", &m_show_backend);
@@ -223,7 +225,6 @@ void CameraStream::SetConfig(Options *config) {
 
     config->GetInt("THRESH_COLOURSPACE", &colourspace);
     switch(colourspace) {
-        default: //Deliberate fall-through
         case THRESH_HSV:
             m_thresholds.colourspace = THRESH_HSV;
             refresh |= config->GetInt("MIN_HUE", &m_thresholds.p1_min, -180, 180);
@@ -473,6 +474,7 @@ void CameraStream::ProcessImages() {
             m_fps = (frame_counter * 1000.0) / frame_duration;
             frame_counter = 0;
             sampling_start = steady_clock::now();
+            //printf("%f\n", m_fps);
             //Log(LOG_INFO, "FPS: %.2f", m_fps);
         }
     }
@@ -519,6 +521,9 @@ void CameraStream::DrawHUD(cv::Mat& img) {
     //Enter the LIDAR range
     sprintf(string_buf, "L: %.2fm", hud.lidar);
     cv::putText(img, string_buf, cv::Point(70*img.cols/100, 20*img.rows/100),
+        cv::FONT_HERSHEY_SIMPLEX, 0.4, cv::Scalar(255, 255, 255), 1, 8);
+    sprintf(string_buf, "P: %.1f, R: %.1f", hud.gimbal.pitch, hud.gimbal.roll);
+    cv::putText(img, string_buf, cv::Point(70*img.cols/100, 25*img.rows/100),
         cv::FONT_HERSHEY_SIMPLEX, 0.4, cv::Scalar(255, 255, 255), 1, 8);
 
     //Enter the position
@@ -646,7 +651,7 @@ void CameraStream::BuildThreshold(uint8_t lookup[][THRESH_SIZE][THRESH_SIZE], Th
     for(r = 0; r < THRESH_SIZE; r++) {
         for(g = 0; g < THRESH_SIZE; g++) {
             for(b = 0; b < THRESH_SIZE; b++) {
-                lookup[r][g][b] = 0;
+                lookup[r][g][b] = BLACK;
 
                 if (thresh.colourspace == THRESH_HSV) {
                     uint8_t h, s, v;
@@ -657,10 +662,10 @@ void CameraStream::BuildThreshold(uint8_t lookup[][THRESH_SIZE][THRESH_SIZE], Th
                         if (thresh.p1_min < 0) {
                             if ((h >= thresh.p1_min+180 && h <= 180) ||
                                 (h >= 0 && h <= thresh.p1_max)) {
-                                    lookup[r][g][b] = 1;
+                                    lookup[r][g][b] = WHITE;
                                 }
                         } else if (h >= thresh.p1_min && h <= thresh.p1_max) {
-                            lookup[r][g][b] = 1;
+                            lookup[r][g][b] = WHITE;
                         }
                     }
                 } else if (thresh.colourspace == THRESH_YCbCr) {
@@ -670,10 +675,34 @@ void CameraStream::BuildThreshold(uint8_t lookup[][THRESH_SIZE][THRESH_SIZE], Th
                     if (y >= thresh.p1_min && y <= thresh.p1_max &&
                         cb >= thresh.p2_min && cb <= thresh.p2_max &&
                         cr >= thresh.p3_min && cr <= thresh.p3_max) {
-                        lookup[r][g][b] = 1;
+                        lookup[r][g][b] = WHITE;
                     }
                 }
             }
+        }
+    }
+}
+
+/**
+ * Threshold a slice of a frame.
+ * @param [in] src The source frame.
+ * @param [in] out The destination frame.
+ * @param [in] skip The pixel skip factor.
+ * @param [in] offset The starting offset.
+ * @param [in] slice_height The number of destination rows to process.
+ */
+void CameraStream::ThresholdSlice(const cv::Mat &src, cv::Mat &out, int skip, int offset, int slice_height) {
+    const uint8_t *srcp;
+    uint8_t *destp;
+    int nChannels = src.channels();
+    int i, j, k;
+    
+    for(j=offset; j < offset+slice_height; j++) {
+        srcp = src.ptr<const uint8_t>(j*skip);
+        destp = out.ptr<uint8_t>(j);
+        for (i=0; i < out.cols; i++) {
+            k = i*nChannels*skip;
+            destp[i] = m_lookup_threshold[srcp[k+2]/THRESH_DIV][srcp[k+1]/THRESH_DIV][srcp[k]/THRESH_DIV];
         }
     }
 }
@@ -685,27 +714,39 @@ void CameraStream::BuildThreshold(uint8_t lookup[][THRESH_SIZE][THRESH_SIZE], Th
  * @param [in] width The output processing width.
  */
 void CameraStream::Threshold(const cv::Mat& src, cv::Mat &out, int width) {
-    int i, j, k;
-    const uint8_t* srcp;
-    uint8_t* destp;
-    int skip = src.cols / width;
-    int nChannels = src.channels();
-
+    //auto start = steady_clock::now();
+    int skip = src.cols/width;
     out.create((src.rows * width) / src.cols, width, CV_8UC1);
-    for(j=0; j < out.rows; j++) {
-        srcp = src.ptr<const uint8_t>(j*skip);
-        destp = out.ptr<uint8_t>(j);
-        for (i=0; i < out.cols; i++) {
-            k = i*nChannels*skip;
-            if(m_lookup_threshold[srcp[k+2]/THRESH_DIV][srcp[k+1]/THRESH_DIV][srcp[k]/THRESH_DIV]) {
-                destp[i] = WHITE;
-            } else {
-                destp[i] = BLACK;
-            }
+    
+    ThresholdSlice(src, out, skip, 0, out.rows);
+    
+    //GDB really does not like thread pooling and GDB will segfault
+    //if threaded thresholding is enabled. Probably fixed by upgrading
+    //GDB.
+    /*
+    if ((out.rows%4)) {
+        ThresholdSlice(src, out, skip, 0, out.rows);
+    } else {
+        //Log(LOG_DEBUG, "SLICING");
+        std::vector<std::future<void>> ret;
+        for (int i = 0; i < 4; i++) {
+            ret.emplace_back(m_pool.enqueue(&CameraStream::ThresholdSlice,
+                this, src, out, skip, (i*out.rows)/4, out.rows/4));
+        }
+        for(auto &&result : ret){
+            result.get();
         }
     }
+    */
+    //printf("%d\n", (int)duration_cast<microseconds>(steady_clock::now()-start).count());
 }
 
+/**
+ * Do auto threshold learning.
+ * @param [in] src The source image.
+ * @param [in] threshold Location to store thresholded image.
+ * @param [in] roi Region of interest to calculate thresholds.
+ */
 void CameraStream::LearnThresholds(cv::Mat& src, cv::Mat& threshold, cv::Rect roi) {
     cv::Mat sroi(src, roi);
     cv::medianBlur(sroi, sroi, 7);

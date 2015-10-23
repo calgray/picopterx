@@ -42,6 +42,8 @@ namespace picopter {
         
         /** LIDAR reading (m) **/
         float lidar;
+        /** Gimbal position **/
+        navigation::EulerAngle gimbal;
         
         /** Battery voltage, in Volts **/
         float batt_voltage;
@@ -89,7 +91,8 @@ namespace picopter {
             bool SetBodyVel(navigation::Vec3D v);
             bool SetBodyPos(navigation::Vec3D p);
             bool SetYaw(int bearing, bool relative);
-            
+            bool SetGimbalPose(navigation::EulerAngle pose);
+            bool ConfigureGimbal();
             bool SetRegionOfInterest(navigation::Coord3D roi);
             bool UnsetRegionOfInterest();
 

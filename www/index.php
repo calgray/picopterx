@@ -99,6 +99,29 @@
         </div>
       </div>
     </div>
+    <!-- Mapping modal -->
+    <div class="modal fade" id="mapping-modal" tabindex="-1" role="dialog" aria-labelledby="mapping-modal-label">
+      <div class="modal-dialog" role="document">
+        <div class="modal-content">
+          <div class="modal-header">
+            <button type="button" class="close" data-dismiss="modal" aria-label="Close"><span aria-hidden="true">&times;</span></button>
+            <h4 class="modal-title" id="mapping-modal-label">Mapping options</h4>
+          </div>
+          <div class="modal-body">
+            What mapping radius do you want to use?
+            <div class="form-group">
+              <label for="mapping-alt" class="control-label">Manual radius (m)</label>
+              <input class="form-control" id="mapping-alt" type="number" step="1" min="0" value="7">
+            </div>
+          </div>
+          <div class="modal-footer">
+            <button type="button" class="btn btn-default" data-dismiss="modal">Cancel</button>
+            <button type="button" id="mapping-modal-manual" class="btn btn-primary pic-doit" data-dismiss="modal" onclick='doManualMapping()'>Manual</button>
+            <button type="button" id="mapping-modal-auto"  class="btn btn-success pic-doit" data-dismiss="modal" onclick='doLidarMapping()'>Auto (LIDAR)</button>
+          </div>
+        </div>
+      </div>
+    </div>
 
     <!-- Main body content -->
     <div id="main-body" class="container">
@@ -228,7 +251,9 @@
               </div>
               <div class="panel-body">
                 <p>
-                  <a href="#" class="btn btn-default btn-block btn-control" onclick="beginUserTracking()">Track User</a>
+                  <a href="#" class="btn btn-default btn-block btn-control" id="user-tracker" onclick="beginUserTracking()" data-toggle="tooltip" data-placement="top" title="" data-original-title="When tracking is possible, this button turns blue.">Track User</a>
+                </p>
+                <p>
                   <a href="#" class="btn btn-default btn-block btn-control" onclick="beginObjectTracking()">Track Object</a>
                 </p>
               </div>
@@ -240,7 +265,8 @@
               </div>
               <div class="panel-body">
                 <p>
-                  <a href="#" class="btn btn-default btn-block btn-control" onclick="beginUserMapping()">Take Picture</a>
+                  <a href="#" class="btn btn-default btn-block btn-control" onclick="beginTakingPictures()">Take Pictures</a>
+                  <a href="#" class="btn btn-default btn-block btn-control" data-toggle="modal" data-target="#mapping-modal">Begin Mapping</a>
                   <a href="pics/" class="btn btn-success btn-block">Download</a>
                 </p>
               </div>
@@ -348,12 +374,12 @@
                   </div>
                   <div class="btn-group btn-group-justified">
                     <div class="btn-group">
-                      <button type="button" class="btn btn-default" onclick="setCameraLearningSize(true)" data-toggle="tooltip" data-placement="top" title="" data-original-title="Increase learning size">
+                      <button type="button" class="btn btn-default" onclick="setCameraLearningSize(true)" data-toggle="tooltip" data-placement="top" title="" data-original-title="Decrease learning size">
                         <span class="glyphicon glyphicon glyphicon-triangle-bottom" aria-hidden="true"></span>
                       </button>
                     </div>
                     <div class="btn-group">
-                      <button type="button" class="btn btn-default" onclick="setCameraLearningSize(false)" data-toggle="tooltip" data-placement="top" title="" data-original-title="Decrease learning size">
+                      <button type="button" class="btn btn-default" onclick="setCameraLearningSize(false)" data-toggle="tooltip" data-placement="top" title="" data-original-title="Increase learning size">
                         <span class="glyphicon glyphicon-triangle-top" aria-hidden="true"></span>
                       </button>
                     </div>
