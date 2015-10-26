@@ -59,7 +59,7 @@ GridSpace::index3D GridSpace::findEndPoint(FlightController *fc){
     if (fc->lidar){        
        
         double lidarm = fc->lidar->GetLatest() / 100.0;
-        if (lidarm < 0.2) lidarm = lidar_range;                                  // LIDAR = 0: no obstacles
+        if (lidarm < 1) lidarm = lidar_range;                                  // LIDAR = 0: no obstacles
         Vec3d ray(0, 0, lidarm);                                                //Vector representing the lidar ray
         
         Matx33d MLidar = rotationMatrix(-6,-3,0);                               //the angle between the camera and the lidar (deg)

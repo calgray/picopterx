@@ -472,12 +472,16 @@ public:
     
 private:
     void gridSpaceLoop() {
+        int i = 0;
         while (!m_stop) {
             if (m_fc->gps->HasFix()) {
                 m_grid.raycast(m_fc.get());
-                m_grid.writeImage();
+                if ((i%10) == 0) {
+                    m_grid.writeImage();
+                }
             }
-            sleep_for(milliseconds(1000));
+            i++;
+            sleep_for(milliseconds(100));
         }
     }
 };
