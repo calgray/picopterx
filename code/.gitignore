@@ -3,6 +3,7 @@ lib/
 doc/
 CMakeFiles/
 Testing/
+build/
 
 include/config.h
 
