@@ -17,6 +17,8 @@ include (CheckLibraryExists)
 include (FindPkgConfig)
 include (ExternalProject)
 
+set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${CMAKE_SOURCE_DIR}/cmake_modules/")
+
 #Versioning
 execute_process (COMMAND git rev-parse HEAD 
 				 OUTPUT_STRIP_TRAILING_WHITESPACE
@@ -29,11 +31,11 @@ execute_process (COMMAND git  show -s --format=%ci HEAD
 
 #OS checks
 if (WIN32 AND NOT CYGWIN)
-	message (FATAL_ERROR "${Red}Windows is not supported. Sorry.${ColourReset}")
+	message (WARNING "${Red}Windows is partially supported. POSIX C code used in base, pkg-config used to find thrift+opencv. ${ColourReset}")
 elseif (CYGWIN)
-	message (WARNING "${Yellow}Cygwin is unsupported. YMMV.${ColourReset}")
+	message (WARNING "${Green}Cygwin is supported. Must manually build thrift, ensure _GNU_SOURCE is enabled. ${ColourReset}")
 elseif (APPLE)
-	message (WARNING "${Yellow}OS X is unsupported. YMMV. Use of clang strongly discouraged.${ColourReset}")
+	message (WARNING "${Yellow}OS X is unsupported. Untested.${ColourReset}")
 endif()
 
 #Set src and include folders
@@ -48,12 +50,18 @@ set (CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin)
 set (CMAKE_ARCHIVE_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/lib)
 set (CMAKE_LIBRARY_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/lib)
 
+
+#===========================
+# Libraries
+#=========================
+
 #Include the MAVLink headers
 include_directories (${PI_THIRD_PARTY}/mavlink)
 
-#Find prerequisite packages
-find_package (OpenCV 2.4 REQUIRED)
-include_directories (${OpenCV_INCLUDE_DIR})
+#OpenCV Library
+pkg_check_modules (LIBOPENCV REQUIRED opencv)
+include_directories (${LIBOPENCV_INCLUDE_DIRS})
+link_directories (${LIBOPENCV_LIBRARY_DIRS})
 
 #Check for gpsd
 pkg_check_modules (LIBGPS libgps)
@@ -78,10 +86,12 @@ else (HAVE_LIBTCMALLOC AND HAVE_LIBPROFILER)
 	message (WARNING "${Yellow}Google perftools (tcmalloc/profiler) was not found. Installation is strongly recommended!${ColourReset}")
 endif (HAVE_LIBTCMALLOC AND HAVE_LIBPROFILER)
 
-#Include rapidjson
+#=============================================
+# RapidJSON (Header only)
 include_directories (${PI_THIRD_PARTY}/rapidjson)
 
-#Documentation (if Doxygen is installed)
+#==========================================
+# Doxygen Documentation + LaTeX (optional)
 set_directory_properties (PROPERTIES ADDITIONAL_MAKE_CLEAN_FILES ${PI_DOC})
 find_package (Doxygen QUIET)
 find_package (latex QUIET)
@@ -113,6 +123,8 @@ if (NOT FORCE_EMULATION)
 	" IS_ON_PI)
 endif()
 
+#==================================
+#Wiring Pi and Wiring Emulation
 if (NOT IS_ON_PI)
 	include_directories (${PI_EMULATE})
 	message (WARNING "${Yellow}Using the emulation files - ${ColourBold}remember to check on the RPi!${ColourReset}")
@@ -126,6 +138,9 @@ else ()
 	link_directories (/opt/vc/lib /opt/vc/src/hello_pi/libs/ilclient)
 endif ()
 
+
+#================================
+# LibGPS and LibGPS Emulation
 if (NOT LIBGPS_FOUND)
 	message (WARNING "${Yellow}Emulating libgps - beware bogus values!${ColourReset}")
 	include_directories(${PI_EMULATE}/gps-emu)
@@ -134,8 +149,14 @@ endif()
 #Australian tuning parameters
 #set (IS_AUSTRALIAN_TUNED ON CACHE BOOL "Enable Australia-specific tuning (default: on)")
 
+
+
+
 #Set the include folders for the compiler
 include_directories (${PI_INCLUDE})
+
+#Enable all POSIX features (Cygwin requires this flag, see features.h)
+add_definitions(-D_GNU_SOURCE)
 
 #Set compiler flags
 set (GCC_COMPILE_FLAGS "-std=c++11 -Wall -pedantic -g")
@@ -145,7 +166,13 @@ set (CMAKE_EXE_LINKER_FLAGS  "${CMAKE_EXE_LINKER_FLAGS} ${GCC_LINK_FLAGS}")
 
 #Pretty filenames (see log.h) and log filepath
 set (CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -D__FILENAME__='\"$(subst ${CMAKE_SOURCE_DIR}/src/,,$(abspath $<))\"'")
+
 set (PICOPTER_HOME_LOCATION $ENV{HOME})
+if(WIN32)
+string(REPLACE "\\" "/" PICOPTER_HOME_LOCATION ${PICOPTER_HOME_LOCATION})
+endif()
+
+message("Home : ${PICOPTER_HOME_LOCATION}")
 
 if (NOT PICOPTER_HOME_LOCATION)
 	set (PICOPTER_HOME_LOCATION "/home/pi")
@@ -164,6 +191,10 @@ if (test)
 	include_directories (${gtest_SOURCE_DIR}/include ${gtest_SOURCE_DIR})
 	add_subdirectory (${CMAKE_CURRENT_SOURCE_DIR}/test)
 endif()
+
+#=================================
+# Project SubModules
+#=================================
 
 #Add the base module
 add_subdirectory (${PI_SRC}/base)

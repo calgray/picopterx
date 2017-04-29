@@ -169,10 +169,10 @@ void FlightController::HUDParser(const mavlink_message_t *msg) {
             m_hud.unix_time_offset = 0;
         } else if (m_hud.unix_time_offset > 5) { //If the offset is > 5 seconds
             time_t nt = (tm.time_unix_usec / 1000000);
-            if (stime(&nt) == 0) {
-                Log(LOG_NOTICE, "System time updated using GPS offset.");
-                m_hud.unix_time_offset = 0;
-            }
+            //if (stime(&nt) == 0) {
+            //    Log(LOG_NOTICE, "System time updated using GPS offset.");
+            //    m_hud.unix_time_offset = 0;
+            //}
         }
     } else if (msg->msgid == MAVLINK_MSG_ID_STATUSTEXT) {
         mavlink_statustext_t st;

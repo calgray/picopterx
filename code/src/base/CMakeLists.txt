@@ -62,5 +62,5 @@ endif (WIRINGPI_FOUND)
 
 #Link to omxcv, if present
 if (IS_ON_PI)
-	target_link_libraries(picopter_base LINK_PRIVATE omxcv)
+	target_link_libraries(picopter_base LINK_PRIVATE omxcv;${LIBOPENCV_LIBRARIES})
 endif (IS_ON_PI)

@@ -1,7 +1,7 @@
 # The actual server executable
 
 # sigaction requires POSIX standards
-add_definitions(-D_POSIX_SOURCE)
+add_definitions(-D_GNU_SOURCE)
 
 # Boost (for thrift/web server only)
 find_package (Boost REQUIRED) #1.53.0
@@ -13,7 +13,8 @@ if (NOT THRIFT_COMPILER)
 	message (FATAL_ERROR "${Red}Thrift was not found. Please install it.${ColourReset}")
 endif()
 
-pkg_check_modules (LIBTHRIFT thrift REQUIRED)
+#Thrift Library
+pkg_check_modules (LIBTHRIFT REQUIRED thrift)
 include_directories (${LIBTHRIFT_INCLUDE_DIRS})
 link_directories (${LIBTHRIFT_LIBRARY_DIRS})
 
