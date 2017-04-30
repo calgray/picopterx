@@ -76,8 +76,8 @@ FlightController::FlightController(Options *opts)
     //GPSGPSD *gps;
     m_buzzer = new Buzzer();
     
-    InitialiseItem("flight board", m_fb, opts, m_buzzer, true, 3);
-    InitialiseItem("LIDAR", m_lidar, opts, m_buzzer, false, 1);
+    InitialiseItem<FlightBoard>("flight board", m_fb, opts, m_buzzer, true, 3);
+    InitialiseItem<Lidar>("LIDAR", m_lidar, opts, m_buzzer, false, 1);
     //InitialiseItem("GPS", gps, opts, m_buzzer, true, 3);
     //m_gps = gps;
     m_imu = m_fb->GetIMUInstance();    
