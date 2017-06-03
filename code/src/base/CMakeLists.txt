@@ -53,7 +53,7 @@ target_link_libraries(picopter_base LINK_PUBLIC atomic)
 #Link to gpsd, if present
 target_link_libraries(picopter_base LINK_PRIVATE ${LIBGPS_LIBRARIES})
 #Link to OpenCV bloat
-target_link_libraries(picopter_base LINK_PRIVATE ${OpenCV_LIBS})
+target_link_libraries(picopter_base LINK_PUBLIC ${LIBOPENCV_LIBRARIES})
 
 #Link to wiringPi, if present
 if (WIRINGPI_FOUND)

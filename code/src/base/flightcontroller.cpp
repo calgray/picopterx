@@ -76,8 +76,8 @@ FlightController::FlightController(Options *opts)
     //GPSGPSD *gps;
     m_buzzer = new Buzzer();
     
-    InitialiseItem("flight board", m_fb, opts, m_buzzer, true, 3);
-    InitialiseItem("LIDAR", m_lidar, opts, m_buzzer, false, 1);
+    InitialiseItem<FlightBoard>("flight board", m_fb, opts, m_buzzer, true, 3);
+    InitialiseItem<Lidar>("LIDAR", m_lidar, opts, m_buzzer, false, 1);
     //InitialiseItem("GPS", gps, opts, m_buzzer, true, 3);
     //m_gps = gps;
     m_imu = m_fb->GetIMUInstance();    
@@ -169,10 +169,10 @@ void FlightController::HUDParser(const mavlink_message_t *msg) {
             m_hud.unix_time_offset = 0;
         } else if (m_hud.unix_time_offset > 5) { //If the offset is > 5 seconds
             time_t nt = (tm.time_unix_usec / 1000000);
-            if (stime(&nt) == 0) {
-                Log(LOG_NOTICE, "System time updated using GPS offset.");
-                m_hud.unix_time_offset = 0;
-            }
+            //if (stime(&nt) == 0) {
+            //    Log(LOG_NOTICE, "System time updated using GPS offset.");
+            //    m_hud.unix_time_offset = 0;
+            //}
         }
     } else if (msg->msgid == MAVLINK_MSG_ID_STATUSTEXT) {
         mavlink_statustext_t st;

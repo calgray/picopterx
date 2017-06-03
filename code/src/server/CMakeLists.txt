@@ -1,21 +1,9 @@
 # The actual server executable
 
 # sigaction requires POSIX standards
-add_definitions(-D_POSIX_SOURCE)
+add_definitions(-D_GNU_SOURCE)
 
-# Boost (for thrift/web server only)
-find_package (Boost REQUIRED) #1.53.0
-include_directories (${Boost_INCLUDE_DIRS})
 
-# Find out where Thrift is
-find_program (THRIFT_COMPILER thrift DOC "Thrift compiler executable")
-if (NOT THRIFT_COMPILER)
-	message (FATAL_ERROR "${Red}Thrift was not found. Please install it.${ColourReset}")
-endif()
-
-pkg_check_modules (LIBTHRIFT thrift REQUIRED)
-include_directories (${LIBTHRIFT_INCLUDE_DIRS})
-link_directories (${LIBTHRIFT_LIBRARY_DIRS})
 
 # Set the list of Thrift generated files
 set (GENSOURCE
@@ -60,9 +48,11 @@ add_executable (picopter ${HEADERS} ${SOURCE})
 # Depends on the Thrift generated files
 add_dependencies (picopter thriftgen)
 
-# Link it with the base module
+# Link with base module
 target_link_libraries (picopter LINK_PUBLIC picopter_base)
-# Link it with the control modules
+# Link with control modules
 target_link_libraries (picopter LINK_PUBLIC picopter_modules)
-# Link it with thrift
+# Link with thrift
 target_link_libraries (picopter LINK_PUBLIC ${LIBTHRIFT_LIBRARIES})
+
+#target_link_libraries (picopter LINK_PUBLIC ${OPENCV_LIBRARIES})

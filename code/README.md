@@ -64,7 +64,13 @@ cd picopterx/code
 make
 ~~~~~
 
-To force emulation of RPi specific components, specify `-DFORCE_EMULATION=ON`. To not build the server component, which depends on Boost and Thrift, specify `-DDISABLE_SERVER=YES`. To build the test applications in the `apps` folder, specify `-DBUILD_OPTIONALS=YES`. There may also be other options - look in the top-level CMakeLists.txt to see what else there is.
+To force emulation of RPi specific components, specify `-DFORCE_EMULATION=ON`. 
+
+To not build the server component, which depends on Boost and Thrift, specify `-DDISABLE_SERVER=YES`. 
+
+To build the test applications in the `apps` folder, specify `-DBUILD_OPTIONALS=YES`. 
+
+There may also be other options - look in the top-level CMakeLists.txt to see what else there is.
 
 To make the source code documentation (CMake version 3 or greater only):
 
